@@ -29,6 +29,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
     python3 \
     iproute2 \
+    libxcb1 \
+    libxcb-shm0 \
+    libxcb-render0 \
+    libx11-6 \
     && rm -rf /var/lib/apt/lists/*
 
 # Tailscale: Moonlight uses default Sunshine ports on the 100.x tailnet IP
@@ -55,14 +59,8 @@ RUN wget -O /tmp/sunshine.AppImage \
     && cp -a /opt/sunshine/squashfs-root/usr/share/sunshine/. /usr/share/sunshine/ \
     && rm -f /tmp/sunshine.AppImage
 
-# File caps with +ep cannot exec under Docker no-new-privs; run Sunshine as root instead.
-RUN setcap cap_sys_admin+p $(readlink -f $(which sunshine)) || true
-
-RUN apt-get update && apt-get install -y --no-install-recommends sudo \
-    && echo 'retro ALL=(root) NOPASSWD:SETENV: /opt/sunshine/squashfs-root/usr/bin/sunshine' \
-      > /etc/sudoers.d/sunshine-root \
-    && chmod 440 /etc/sudoers.d/sunshine-root \
-    && rm -rf /var/lib/apt/lists/*
+# KMS needs file caps; those break X11 capture. Vast also denies SYS_ADMIN, so use X11.
+RUN setcap -r $(readlink -f $(which sunshine)) 2>/dev/null || true
 
 # Games on Whales uses UNAME=retro, HOME=/home/retro (not "user")
 # WORKDIR must not be $HOME: 10-setup_user.sh runs userdel -r and deletes cwd.
