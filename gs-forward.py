@@ -238,7 +238,6 @@ def listen_udp(src: int, dest: int):
 
 def main():
     host_ports = vast_host_ports()
-    threading.Thread(target=scan_public_ports, args=(host_ports,), daemon=True).start()
     threads = []
     for src, dest in TCP_MAP:
         t = threading.Thread(
