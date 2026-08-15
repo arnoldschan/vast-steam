@@ -56,7 +56,7 @@ RUN wget -O /tmp/sunshine.AppImage \
     && rm -f /tmp/sunshine.AppImage
 
 # Give Sunshine capabilities to create virtual input devices and intercept GPU frames
-RUN setcap cap_sys_admin+p $(readlink -f $(which sunshine))
+RUN setcap cap_sys_admin,cap_sys_nice+ep $(readlink -f $(which sunshine))
 
 # Games on Whales uses UNAME=retro, HOME=/home/retro (not "user")
 # WORKDIR must not be $HOME: 10-setup_user.sh runs userdel -r and deletes cwd.
