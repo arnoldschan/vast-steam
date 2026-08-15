@@ -72,7 +72,7 @@ COPY --chmod=755 40-xorg.sh /etc/cont-init.d/40-xorg.sh
 COPY --chmod=644 xorg-nvidia.conf /etc/X11/xorg-nvidia.conf
 COPY --chmod=755 system-services.sh /etc/cont-init.d/system-services.sh
 
-# Wrap GOW startup so PulseAudio and Sunshine run as retro, then Steam
+# Wrap GOW startup: PulseAudio + Sunshine as retro (Steam is launched manually)
 COPY --chmod=644 sunshine.conf /opt/gow/sunshine.conf
 COPY --chmod=755 entrypoint.sh /opt/gow/startup.sh
 
