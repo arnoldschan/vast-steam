@@ -37,8 +37,9 @@ RUN wget -O /tmp/sunshine.AppImage \
 RUN setcap cap_sys_admin+p $(readlink -f $(which sunshine))
 
 # Games on Whales uses UNAME=retro, HOME=/home/retro (not "user")
+# WORKDIR must not be $HOME: 10-setup_user.sh runs userdel -r and deletes cwd.
 ENV HOME=/home/retro
-WORKDIR $HOME
+WORKDIR /
 
 # Pre-create directory structures for the persistent volume mounts
 RUN mkdir -p $HOME/.steam/steam/config/ \
@@ -52,6 +53,7 @@ RUN echo '{"CompatToolMapping":{"2394300":{"name":"proton_experimental","config"
 
 # /tmp is tmpfs at runtime; create XDG_RUNTIME_DIR before GOW 10-setup_user.sh chowns it
 COPY --chmod=755 00-xdg-runtime.sh /etc/cont-init.d/00-xdg-runtime.sh
+COPY --chmod=755 system-services.sh /etc/cont-init.d/system-services.sh
 
 # Wrap GOW startup so PulseAudio and Sunshine run as retro, then Steam
 COPY --chmod=755 entrypoint.sh /opt/gow/startup.sh

@@ -4,6 +4,7 @@ set -u
 
 source /opt/gow/bash-lib/utils.sh 2>/dev/null || true
 
+cd "${HOME:-/home/retro}"
 mkdir -p "${HOME}/.config/pulse" "${XDG_RUNTIME_DIR:-/tmp}"
 
 # PulseAudio must not run as root; this script is already dropped to retro
