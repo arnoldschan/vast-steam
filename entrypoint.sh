@@ -35,6 +35,7 @@ if ! xdpyinfo >/dev/null 2>&1; then
   xdpyinfo 2>&1 | head -n 20 || true
 else
   gow_log "X display ${DISPLAY} is usable"
+  xsetroot -solid "#2d2d2d" >/dev/null 2>&1 || true
 fi
 
 mkdir -p "${HOME}/.config/sunshine"
