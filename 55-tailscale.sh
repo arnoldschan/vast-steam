@@ -37,6 +37,13 @@ fi
   tailscale --socket="$SOCK" status || true
   echo "=== tailscale ip ==="
   tailscale --socket="$SOCK" ip -4 || true
+  chmod 755 /run/tailscale 2>/dev/null || true
+  chmod 666 "$SOCK" 2>/dev/null || true
+  tailscale --socket="$SOCK" ip -4 2>/dev/null | head -n 1 > /tmp/tailscale-ip || true
+  tailscale --socket="$SOCK" status --json 2>/dev/null \
+    | python3 -c "import json,sys; print(((json.load(sys.stdin).get('Self') or {}).get('DNSName') or '').rstrip('.'))" \
+    > /tmp/tailscale-dns 2>/dev/null || true
+  chmod 644 /tmp/tailscale-ip /tmp/tailscale-dns 2>/dev/null || true
 
   if tailscale --socket="$SOCK" ip -4 >/dev/null 2>&1; then
     tailscale --socket="$SOCK" serve --bg --tcp 47989 tcp://127.0.0.1:47989 || true

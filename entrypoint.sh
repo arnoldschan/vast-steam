@@ -43,21 +43,18 @@ SUNSHINE_BASE_PORT="${SUNSHINE_BASE_PORT:-46989}"
 sed -i "s/^port = .*/port = ${SUNSHINE_BASE_PORT}/" "${HOME}/.config/sunshine/sunshine.conf"
 gow_log "Sunshine base port ${SUNSHINE_BASE_PORT}"
 PUBLIC_IP="$(curl -4 -fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)"
-TS_SOCK=/run/tailscale/tailscaled.sock
 TS_IP=""
 TS_DNS=""
-for _ in $(seq 1 40); do
-  if [ -S "$TS_SOCK" ]; then
-    TS_IP="$(tailscale --socket="$TS_SOCK" ip -4 2>/dev/null | head -n 1 || true)"
-    if [ -n "$TS_IP" ]; then
-      TS_DNS="$(tailscale --socket="$TS_SOCK" status --json 2>/dev/null \
-        | python3 -c "import json,sys; print((json.load(sys.stdin).get('Self') or {}).get('DNSName') or '')" 2>/dev/null || true)"
-      TS_DNS="${TS_DNS%.}"
+if pidof tailscaled >/dev/null 2>&1; then
+  for _ in $(seq 1 80); do
+    if [ -s /tmp/tailscale-ip ]; then
+      TS_IP="$(tr -d '[:space:]' < /tmp/tailscale-ip)"
+      TS_DNS="$(tr -d '[:space:]' < /tmp/tailscale-dns 2>/dev/null || true)"
       break
     fi
-  fi
-  sleep 0.25
-done
+    sleep 0.25
+  done
+fi
 CSRF_ORIGINS=""
 append_csrf() {
   case ",${CSRF_ORIGINS}," in
