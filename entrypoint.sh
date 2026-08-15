@@ -8,9 +8,18 @@ source /opt/gow/bash-lib/utils.sh 2>/dev/null || true
 cd "${HOME:-/home/retro}"
 mkdir -p "${HOME}/.config/pulse" "${XDG_RUNTIME_DIR:-/tmp/.X11-unix}"
 
-export DISPLAY="${DISPLAY:-:0}"
-# Nested compositor so Steam/Sunshine have an X server on headless GPU hosts
 export RUN_GAMESCOPE="${RUN_GAMESCOPE:-1}"
+export ENABLE_GAMESCOPE_WSI="${ENABLE_GAMESCOPE_WSI:-0}"
+# DISPLAY=:0 with no X server makes gamescope pick SDL "offscreen" (no Vulkan).
+if [ -n "${DISPLAY:-}" ] && ! xdpyinfo >/dev/null 2>&1; then
+  unset DISPLAY
+  unset SDL_VIDEODRIVER
+fi
+if [ -z "${GAMESCOPE_MODE:-}" ]; then
+  export GAMESCOPE_MODE="--backend headless -b"
+else
+  export GAMESCOPE_MODE
+fi
 
 if ! pulseaudio --check 2>/dev/null; then
   pulseaudio --start --exit-idle-time=-1 --disallow-exit --log-level=1 >/dev/null 2>&1 || true
@@ -26,7 +35,7 @@ done
 pactl load-module module-null-sink sink_name=Sunshine_Audio sink_properties=device.description="Sunshine_Audio" >/dev/null 2>&1 || true
 pactl set-default-sink Sunshine_Audio >/dev/null 2>&1 || true
 
-# Wait for any X socket (gamescope may not use DISPLAY=:0)
+# Wait for gamescope's nested Xwayland socket
 (
   for _ in $(seq 1 180); do
     for sock in /tmp/.X11-unix/X*; do

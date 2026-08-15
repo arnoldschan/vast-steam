@@ -41,8 +41,9 @@ RUN setcap cap_sys_admin+p $(readlink -f $(which sunshine))
 # Games on Whales uses UNAME=retro, HOME=/home/retro (not "user")
 # WORKDIR must not be $HOME: 10-setup_user.sh runs userdel -r and deletes cwd.
 ENV HOME=/home/retro
-ENV DISPLAY=:0
 ENV RUN_GAMESCOPE=1
+ENV GAMESCOPE_MODE="--backend headless -b"
+ENV ENABLE_GAMESCOPE_WSI=0
 WORKDIR /
 
 # Pre-create directory structures for the persistent volume mounts
