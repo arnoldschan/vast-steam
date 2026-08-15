@@ -52,8 +52,9 @@ RUN wget -O /tmp/sunshine.AppImage \
     && mkdir -p /opt/sunshine \
     && cd /opt/sunshine \
     && /tmp/sunshine.AppImage --appimage-extract \
-    && SUNSHINE_BIN="$(find /opt/sunshine/squashfs-root -type f -name sunshine -perm -111 | head -n 1)" \
+    && SUNSHINE_BIN="$(find /opt/sunshine/squashfs-root -type f -name sunshine | head -n 1)" \
     && test -n "$SUNSHINE_BIN" \
+    && chmod +x "$SUNSHINE_BIN" \
     && ln -sf "$SUNSHINE_BIN" /usr/local/bin/sunshine \
     && mkdir -p /usr/share/sunshine \
     && cp -a /opt/sunshine/squashfs-root/usr/share/sunshine/. /usr/share/sunshine/ \
