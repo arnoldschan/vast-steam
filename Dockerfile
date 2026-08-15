@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
     python3 \
     iproute2 \
+    squashfs-tools \
     libxcb1 \
     libxcb-shm0 \
     libxcb-render0 \
@@ -50,8 +51,12 @@ RUN wget -O /tmp/sunshine.AppImage \
       "https://github.com/LizardByte/Sunshine/releases/download/v2025.122.141614/sunshine.AppImage" \
     && chmod +x /tmp/sunshine.AppImage \
     && mkdir -p /opt/sunshine \
-    && cd /opt/sunshine \
-    && /tmp/sunshine.AppImage --appimage-extract || true \
+    && OFFSET="$(/tmp/sunshine.AppImage --appimage-offset 2>/dev/null || true)" \
+    && if [ -n "$OFFSET" ]; then \
+         unsquashfs -o "$OFFSET" -d /opt/sunshine/squashfs-root /tmp/sunshine.AppImage; \
+       else \
+         cd /opt/sunshine && /tmp/sunshine.AppImage --appimage-extract; \
+       fi \
     && test -d /opt/sunshine/squashfs-root \
     && SUNSHINE_BIN="$(find /opt/sunshine/squashfs-root -type f -name sunshine | head -n 1)" \
     && test -n "$SUNSHINE_BIN" \
