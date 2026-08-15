@@ -51,13 +51,16 @@ RUN wget -O /tmp/sunshine.AppImage \
     && chmod +x /tmp/sunshine.AppImage \
     && mkdir -p /opt/sunshine \
     && cd /opt/sunshine \
-    && /tmp/sunshine.AppImage --appimage-extract \
+    && /tmp/sunshine.AppImage --appimage-extract || true \
+    && test -d /opt/sunshine/squashfs-root \
     && SUNSHINE_BIN="$(find /opt/sunshine/squashfs-root -type f -name sunshine | head -n 1)" \
     && test -n "$SUNSHINE_BIN" \
     && chmod +x "$SUNSHINE_BIN" \
     && ln -sf "$SUNSHINE_BIN" /usr/local/bin/sunshine \
     && mkdir -p /usr/share/sunshine \
-    && cp -a /opt/sunshine/squashfs-root/usr/share/sunshine/. /usr/share/sunshine/ \
+    && if [ -d /opt/sunshine/squashfs-root/usr/share/sunshine ]; then \
+         cp -a /opt/sunshine/squashfs-root/usr/share/sunshine/. /usr/share/sunshine/; \
+       fi \
     && rm -f /tmp/sunshine.AppImage
 
 # KMS needs file caps; those break X11 capture. Vast also denies SYS_ADMIN, so use X11.
