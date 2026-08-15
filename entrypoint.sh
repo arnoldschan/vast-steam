@@ -39,16 +39,18 @@ else
 fi
 
 mkdir -p "${HOME}/.config/sunshine"
-if [ ! -f "${HOME}/.config/sunshine/sunshine.conf" ]; then
-  cp /opt/gow/sunshine.conf "${HOME}/.config/sunshine/sunshine.conf"
-fi
+cp /opt/gow/sunshine.conf "${HOME}/.config/sunshine/sunshine.conf"
 APPS_JSON="$(find /opt/sunshine/squashfs-root -name apps.json 2>/dev/null | head -n 1)"
 if [ -n "$APPS_JSON" ] && [ ! -f "${HOME}/.config/sunshine/apps.json" ]; then
   cp "$APPS_JSON" "${HOME}/.config/sunshine/apps.json"
 fi
 
 gow_log "Starting Sunshine web UI on 0.0.0.0:47990"
-sunshine "${HOME}/.config/sunshine/sunshine.conf" >>/tmp/sunshine.log 2>&1 &
+# AppImage binary resolves web assets relative to squashfs-root (./usr/share/sunshine)
+(
+  cd /opt/sunshine/squashfs-root
+  exec ./usr/bin/sunshine "${HOME}/.config/sunshine/sunshine.conf"
+) >>/tmp/sunshine.log 2>&1 &
 
 steam_still_running() {
   pgrep -u "$(id -u)" -x steam >/dev/null 2>&1 \

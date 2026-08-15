@@ -38,6 +38,8 @@ RUN wget -O /tmp/sunshine.AppImage \
     && SUNSHINE_BIN="$(find /opt/sunshine/squashfs-root -type f -name sunshine -perm -111 | head -n 1)" \
     && test -n "$SUNSHINE_BIN" \
     && ln -sf "$SUNSHINE_BIN" /usr/local/bin/sunshine \
+    && mkdir -p /usr/share/sunshine \
+    && cp -a /opt/sunshine/squashfs-root/usr/share/sunshine/. /usr/share/sunshine/ \
     && rm -f /tmp/sunshine.AppImage
 
 # Give Sunshine capabilities to create virtual input devices and intercept GPU frames

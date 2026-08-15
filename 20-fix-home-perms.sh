@@ -17,7 +17,7 @@ if [ ! -s "${HOME_DIR}/.steam/steam/config/config.vdf" ] && [ -f /opt/gow/steam-
   cp /opt/gow/steam-compat.vdf "${HOME_DIR}/.steam/steam/config/config.vdf"
 fi
 
-if [ ! -s "${HOME_DIR}/.config/sunshine/sunshine.conf" ] && [ -f /opt/gow/sunshine.conf ]; then
+if [ -f /opt/gow/sunshine.conf ]; then
   cp /opt/gow/sunshine.conf "${HOME_DIR}/.config/sunshine/sunshine.conf"
 fi
 
