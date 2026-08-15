@@ -71,6 +71,7 @@ COPY --chmod=644 xorg-nvidia.conf /etc/X11/xorg-nvidia.conf
 COPY --chmod=755 system-services.sh /etc/cont-init.d/system-services.sh
 
 # Wrap GOW startup so PulseAudio and Sunshine run as retro, then Steam
+COPY --chmod=644 sunshine.conf /opt/gow/sunshine.conf
 COPY --chmod=755 entrypoint.sh /opt/gow/startup.sh
 
 # Keep Games on Whales /entrypoint.sh (runs cont-init.d, then gosu retro)

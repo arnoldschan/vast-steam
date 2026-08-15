@@ -38,15 +38,17 @@ else
   gow_log "X display ${DISPLAY} is usable"
 fi
 
-(
-  for _ in $(seq 1 180); do
-    if xdpyinfo >/dev/null 2>&1; then
-      exec sunshine
-    fi
-    sleep 1
-  done
-  echo "Sunshine: gave up waiting for X display ${DISPLAY}" >&2
-) &
+mkdir -p "${HOME}/.config/sunshine"
+if [ ! -f "${HOME}/.config/sunshine/sunshine.conf" ]; then
+  cp /opt/gow/sunshine.conf "${HOME}/.config/sunshine/sunshine.conf"
+fi
+APPS_JSON="$(find /opt/sunshine/squashfs-root -name apps.json 2>/dev/null | head -n 1)"
+if [ -n "$APPS_JSON" ] && [ ! -f "${HOME}/.config/sunshine/apps.json" ]; then
+  cp "$APPS_JSON" "${HOME}/.config/sunshine/apps.json"
+fi
+
+gow_log "Starting Sunshine web UI on 0.0.0.0:47990"
+sunshine "${HOME}/.config/sunshine/sunshine.conf" >>/tmp/sunshine.log 2>&1 &
 
 steam_still_running() {
   pgrep -u "$(id -u)" -x steam >/dev/null 2>&1 \
