@@ -38,11 +38,6 @@ else
 fi
 
 mkdir -p "${HOME}/.config/sunshine"
-# Fresh conf every boot. Drop saved Sunshine users so the UI is not stuck on HTTP Basic
-# (the SPA keeps calling /api/* without Authorization and spins forever).
-rm -f "${HOME}/.config/sunshine/credentials.json" \
-  "${HOME}/.config/sunshine/credentials" \
-  "${HOME}/.config/sunshine/sunshine_state.json"
 cp /opt/gow/sunshine.conf "${HOME}/.config/sunshine/sunshine.conf"
 PUBLIC_IP="$(curl -4 -fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)"
 if [ -n "$PUBLIC_IP" ]; then
@@ -60,7 +55,15 @@ if [ -n "$APPS_JSON" ] && [ ! -f "${HOME}/.config/sunshine/apps.json" ]; then
   cp "$APPS_JSON" "${HOME}/.config/sunshine/apps.json"
 fi
 
-gow_log "Starting Sunshine web UI on 0.0.0.0:47990 (Steam is not auto-started)"
-# AppImage binary resolves web assets relative to squashfs-root (./usr/share/sunshine)
+# Pre-create Web UI credentials so Chrome's HTTP Basic dialog is used instead of
+# the /welcome form (that form never sends Authorization and the UI spins forever).
+SUNSHINE_USERNAME="${SUNSHINE_USERNAME:-sunshine}"
+SUNSHINE_PASSWORD="${SUNSHINE_PASSWORD:-sunshine}"
 cd /opt/sunshine/squashfs-root
+./usr/bin/sunshine "${HOME}/.config/sunshine/sunshine.conf" \
+  --creds "${SUNSHINE_USERNAME}" "${SUNSHINE_PASSWORD}" \
+  >>/tmp/sunshine-creds.log 2>&1 || true
+gow_log "Sunshine Web UI login: ${SUNSHINE_USERNAME} / (SUNSHINE_PASSWORD)"
+
+gow_log "Starting Sunshine web UI on 0.0.0.0:47990 (Steam is not auto-started)"
 exec ./usr/bin/sunshine "${HOME}/.config/sunshine/sunshine.conf"
