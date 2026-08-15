@@ -39,6 +39,9 @@ fi
 
 mkdir -p "${HOME}/.config/sunshine"
 cp /opt/gow/sunshine.conf "${HOME}/.config/sunshine/sunshine.conf"
+SUNSHINE_BASE_PORT="${SUNSHINE_BASE_PORT:-46989}"
+sed -i "s/^port = .*/port = ${SUNSHINE_BASE_PORT}/" "${HOME}/.config/sunshine/sunshine.conf"
+gow_log "Sunshine base port ${SUNSHINE_BASE_PORT}"
 PUBLIC_IP="$(curl -4 -fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)"
 if [ -n "$PUBLIC_IP" ]; then
   # Only https:// prefixes are accepted; they also match https://IP:mappedPort
@@ -66,6 +69,7 @@ cd /opt/sunshine/squashfs-root
 gow_log "Sunshine Web UI login: ${SUNSHINE_USERNAME} / (SUNSHINE_PASSWORD)"
 
 gow_log "Starting Sunshine (Steam is not auto-started)"
+if [ "${SUNSHINE_BASE_PORT}" = "46989" ]; then
 (
   for _ in $(seq 1 40); do
     python3 -c "import socket; s=socket.create_connection(('127.0.0.1',46989),1); s.close(); s=socket.create_connection(('127.0.0.1',46990),1); s.close()" 2>/dev/null && break
@@ -73,8 +77,8 @@ gow_log "Starting Sunshine (Steam is not auto-started)"
   done
   export PUBLIC_IP="${PUBLIC_IP}"
   python3 /opt/gow/gs-forward.py >>/tmp/gs-forward.log 2>&1 &
-  python3 -c "import socket; s=socket.create_connection(('127.0.0.1',46990),1); s.close()" 2>/dev/null || true
   gow_log "Starting Sunshine Web UI proxy on :47990 -> 127.0.0.1:46990"
   exec python3 /opt/gow/ui-proxy.py
 ) >>/tmp/ui-proxy.log 2>&1 &
+fi
 exec ./usr/bin/sunshine "${HOME}/.config/sunshine/sunshine.conf"
