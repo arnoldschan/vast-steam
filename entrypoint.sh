@@ -43,16 +43,6 @@ SUNSHINE_BASE_PORT="${SUNSHINE_BASE_PORT:-46989}"
 sed -i "s/^port = .*/port = ${SUNSHINE_BASE_PORT}/" "${HOME}/.config/sunshine/sunshine.conf"
 gow_log "Sunshine base port ${SUNSHINE_BASE_PORT}"
 PUBLIC_IP="$(curl -4 -fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)"
-TS_IP=""
-TS_DNS=""
-for _ in $(seq 1 100); do
-  if [ -s /tmp/tailscale-ip ]; then
-    TS_IP="$(tr -d '[:space:]' < /tmp/tailscale-ip)"
-    TS_DNS="$(tr -d '[:space:]' < /tmp/tailscale-dns 2>/dev/null || true)"
-    break
-  fi
-  sleep 0.25
-done
 CSRF_ORIGINS=""
 append_csrf() {
   case ",${CSRF_ORIGINS}," in
@@ -67,8 +57,21 @@ append_csrf() {
   esac
 }
 [ -n "$PUBLIC_IP" ] && append_csrf "https://${PUBLIC_IP}"
-[ -n "$TS_IP" ] && append_csrf "https://${TS_IP}"
-[ -n "$TS_DNS" ] && append_csrf "https://${TS_DNS}"
+for _ in $(seq 1 100); do
+  if [ -s /tmp/tailscale-ip ]; then
+    TS_IP="$(tr -d '[:space:]' < /tmp/tailscale-ip)"
+    case "$TS_IP" in
+      100.*)
+        append_csrf "https://${TS_IP}"
+        if [ -s /tmp/tailscale-dns ]; then
+          append_csrf "https://$(tr -d '[:space:]' < /tmp/tailscale-dns)"
+        fi
+        break
+        ;;
+    esac
+  fi
+  sleep 0.25
+done
 if [ -n "${CSRF_ALLOWED_ORIGINS:-}" ]; then
   CSRF_ORIGINS="${CSRF_ORIGINS:+${CSRF_ORIGINS},}${CSRF_ALLOWED_ORIGINS}"
 fi
