@@ -44,10 +44,10 @@ RUN wget -O /tmp/tailscale.tgz "https://pkgs.tailscale.com/stable/tailscale_late
     && install -m 755 "$TS_DIR/tailscaled" /usr/sbin/tailscaled \
     && rm -rf /tmp/tailscale.tgz "$TS_DIR"
 
-# Install Sunshine via AppImage so it matches Ubuntu 25.04 (GOW steam:master).
-# Official .deb builds are only for 22.04 / 24.04 / 26.04 and fail on Plucky.
+# Pin a release that still does X11 capture. Latest AppImage download is flaky
+# and current Sunshine prefers KMS (black on Vast without SYS_ADMIN).
 RUN wget -O /tmp/sunshine.AppImage \
-      "https://github.com/LizardByte/Sunshine/releases/latest/download/sunshine.AppImage" \
+      "https://github.com/LizardByte/Sunshine/releases/download/v2025.122.141614/sunshine.AppImage" \
     && chmod +x /tmp/sunshine.AppImage \
     && mkdir -p /opt/sunshine \
     && cd /opt/sunshine \
