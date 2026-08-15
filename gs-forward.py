@@ -7,6 +7,7 @@ import re
 import select
 import socket
 import threading
+import time
 import urllib.request
 
 BASE = int(os.environ.get("SUNSHINE_INTERNAL_BASE", "46989"))
@@ -25,10 +26,23 @@ def log(msg: str) -> None:
     print(f"[gs-forward] {msg}", flush=True)
 
 
+def api_key() -> str:
+    k = os.environ.get("VAST_API_KEY", "").strip()
+    if k:
+        return k
+    path = "/opt/gow/vast-api-key"
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return fh.read().strip()
+    except OSError:
+        return ""
+
+
 def vast_host_ports() -> dict[int, int]:
     """container_port -> host_port"""
-    key = os.environ.get("VAST_API_KEY", "")
+    key = api_key()
     if not key:
+        log("no VAST_API_KEY; cannot rewrite HTTPS host port")
         return {}
     try:
         req = urllib.request.Request(
@@ -238,6 +252,17 @@ def listen_udp(src: int, dest: int):
 
 def main():
     host_ports = vast_host_ports()
+
+    def refresh():
+        for _ in range(15):
+            found = vast_host_ports()
+            if found:
+                host_ports.update(found)
+                if 47984 in host_ports:
+                    return
+            time.sleep(2)
+
+    threading.Thread(target=refresh, daemon=True).start()
     threads = []
     for src, dest in TCP_MAP:
         t = threading.Thread(
