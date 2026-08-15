@@ -7,8 +7,8 @@ import socket
 import ssl
 import threading
 
-LISTEN_PORT = int(os.environ.get("SUNSHINE_UI_PROXY_PORT", "18443"))
-BACKEND = ("127.0.0.1", int(os.environ.get("SUNSHINE_UI_BACKEND_PORT", "47990")))
+LISTEN_PORT = int(os.environ.get("SUNSHINE_UI_PROXY_PORT", "47990"))
+BACKEND = ("127.0.0.1", int(os.environ.get("SUNSHINE_UI_BACKEND_PORT", "46990")))
 USER = os.environ.get("SUNSHINE_USERNAME", "sunshine")
 PASSWORD = os.environ.get("SUNSHINE_PASSWORD", "sunshine")
 AUTH = "Basic " + base64.b64encode(f"{USER}:{PASSWORD}".encode()).decode()
