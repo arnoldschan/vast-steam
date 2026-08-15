@@ -18,6 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     libfuse2t64 \
+    xvfb \
+    x11-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Sunshine via AppImage so it matches Ubuntu 25.04 (GOW steam:master).
@@ -39,6 +41,8 @@ RUN setcap cap_sys_admin+p $(readlink -f $(which sunshine))
 # Games on Whales uses UNAME=retro, HOME=/home/retro (not "user")
 # WORKDIR must not be $HOME: 10-setup_user.sh runs userdel -r and deletes cwd.
 ENV HOME=/home/retro
+ENV DISPLAY=:0
+ENV RUN_GAMESCOPE=1
 WORKDIR /
 
 # Pre-create directory structures for the persistent volume mounts

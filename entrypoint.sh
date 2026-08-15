@@ -1,15 +1,19 @@
 #!/bin/bash
 # Runs as UNAME (retro) via Games on Whales /entrypoint.sh
-set -u
+# Steam is PID of this script's child: if Steam exits, Docker restarts the
+# whole container (cont-init loop). Keep a display up and respawn Steam.
 
 source /opt/gow/bash-lib/utils.sh 2>/dev/null || true
 
 cd "${HOME:-/home/retro}"
-mkdir -p "${HOME}/.config/pulse" "${XDG_RUNTIME_DIR:-/tmp}"
+mkdir -p "${HOME}/.config/pulse" "${XDG_RUNTIME_DIR:-/tmp/.X11-unix}"
 
-# PulseAudio must not run as root; this script is already dropped to retro
+export DISPLAY="${DISPLAY:-:0}"
+# Nested compositor so Steam/Sunshine have an X server on headless GPU hosts
+export RUN_GAMESCOPE="${RUN_GAMESCOPE:-1}"
+
 if ! pulseaudio --check 2>/dev/null; then
-  pulseaudio --start --exit-idle-time=-1 --disallow-exit --log-level=1 || true
+  pulseaudio --start --exit-idle-time=-1 --disallow-exit --log-level=1 >/dev/null 2>&1 || true
 fi
 
 for _ in $(seq 1 30); do
@@ -19,18 +23,26 @@ for _ in $(seq 1 30); do
   sleep 0.2
 done
 
-pactl load-module module-null-sink sink_name=Sunshine_Audio sink_properties=device.description="Sunshine_Audio" 2>/dev/null || true
-pactl set-default-sink Sunshine_Audio 2>/dev/null || true
+pactl load-module module-null-sink sink_name=Sunshine_Audio sink_properties=device.description="Sunshine_Audio" >/dev/null 2>&1 || true
+pactl set-default-sink Sunshine_Audio >/dev/null 2>&1 || true
 
-# Sunshine needs an X display; Steam/gamescope creates it in startup-app.sh
+# Wait for any X socket (gamescope may not use DISPLAY=:0)
 (
-  for _ in $(seq 1 120); do
-    if xdpyinfo >/dev/null 2>&1; then
-      exec sunshine
-    fi
+  for _ in $(seq 1 180); do
+    for sock in /tmp/.X11-unix/X*; do
+      [ -e "$sock" ] || continue
+      export DISPLAY=":${sock##*/X}"
+      if xdpyinfo >/dev/null 2>&1; then
+        exec sunshine
+      fi
+    done
     sleep 1
   done
-  echo "Sunshine: gave up waiting for X display ${DISPLAY:-unset}" >&2
+  echo "Sunshine: gave up waiting for an X display" >&2
 ) &
 
-exec /opt/gow/startup-app.sh
+while true; do
+  /opt/gow/startup-app.sh || true
+  echo "Steam exited; restarting in 5s" >&2
+  sleep 5
+done
