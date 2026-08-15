@@ -4,9 +4,10 @@ Steam + Sunshine image based on [Games on Whales](https://github.com/games-on-wh
 
 ## Image
 
-Published to `ghcr.io/arnoldschan/vast-steam` by GitHub Actions on pushes to `main`.
+Published by GitHub Actions on pushes to `main`:
 
 ```bash
+docker pull arnoldschan/vast-steam:latest
 docker pull ghcr.io/arnoldschan/vast-steam:latest
 ```
 
