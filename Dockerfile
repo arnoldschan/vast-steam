@@ -25,6 +25,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dbus-x11 \
     xserver-xorg-core \
     xserver-xorg-input-libinput \
+    iptables \
+    openssl \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Sunshine via AppImage so it matches Ubuntu 25.04 (GOW steam:master).
@@ -71,6 +74,8 @@ COPY --chmod=755 20-fix-home-perms.sh /etc/cont-init.d/20-fix-home-perms.sh
 COPY --chmod=755 40-xorg.sh /etc/cont-init.d/40-xorg.sh
 COPY --chmod=644 xorg-nvidia.conf /etc/X11/xorg-nvidia.conf
 COPY --chmod=755 system-services.sh /etc/cont-init.d/system-services.sh
+COPY --chmod=755 50-ui-proxy.sh /etc/cont-init.d/50-ui-proxy.sh
+COPY --chmod=755 ui-proxy.py /opt/gow/ui-proxy.py
 
 # Wrap GOW startup: PulseAudio + Sunshine as retro (Steam is launched manually)
 COPY --chmod=644 sunshine.conf /opt/gow/sunshine.conf

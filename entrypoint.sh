@@ -65,5 +65,6 @@ cd /opt/sunshine/squashfs-root
   >>/tmp/sunshine-creds.log 2>&1 || true
 gow_log "Sunshine Web UI login: ${SUNSHINE_USERNAME} / (SUNSHINE_PASSWORD)"
 
+python3 /opt/gow/ui-proxy.py >>/tmp/ui-proxy.log 2>&1 &
 gow_log "Starting Sunshine web UI on 0.0.0.0:47990 (Steam is not auto-started)"
 exec ./usr/bin/sunshine "${HOME}/.config/sunshine/sunshine.conf"
