@@ -55,8 +55,14 @@ RUN wget -O /tmp/sunshine.AppImage \
     && cp -a /opt/sunshine/squashfs-root/usr/share/sunshine/. /usr/share/sunshine/ \
     && rm -f /tmp/sunshine.AppImage
 
-# Give Sunshine capabilities to create virtual input devices and intercept GPU frames
-RUN setcap cap_sys_admin,cap_sys_nice+ep $(readlink -f $(which sunshine))
+# File caps with +ep cannot exec under Docker no-new-privs; run Sunshine as root instead.
+RUN setcap cap_sys_admin+p $(readlink -f $(which sunshine)) || true
+
+RUN apt-get update && apt-get install -y --no-install-recommends sudo \
+    && echo 'retro ALL=(root) NOPASSWD:SETENV: /opt/sunshine/squashfs-root/usr/bin/sunshine' \
+      > /etc/sudoers.d/sunshine-root \
+    && chmod 440 /etc/sudoers.d/sunshine-root \
+    && rm -rf /var/lib/apt/lists/*
 
 # Games on Whales uses UNAME=retro, HOME=/home/retro (not "user")
 # WORKDIR must not be $HOME: 10-setup_user.sh runs userdel -r and deletes cwd.

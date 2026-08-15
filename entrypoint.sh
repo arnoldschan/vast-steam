@@ -109,4 +109,4 @@ if [ "${SUNSHINE_BASE_PORT}" = "46989" ]; then
   exec python3 /opt/gow/ui-proxy.py
 ) >>/tmp/ui-proxy.log 2>&1 &
 fi
-exec ./usr/bin/sunshine "${HOME}/.config/sunshine/sunshine.conf"
+exec sudo -n -E ./usr/bin/sunshine "${HOME}/.config/sunshine/sunshine.conf"
