@@ -4,7 +4,8 @@
 source /opt/gow/bash-lib/utils.sh 2>/dev/null || true
 
 cd "${HOME:-/home/retro}"
-mkdir -p "${HOME}/.config/pulse" "${HOME}/.steam/ubuntu12_32/steam-runtime" "${XDG_RUNTIME_DIR:-/tmp/.X11-unix}"
+mkdir -p "${HOME}/.config/pulse" "${HOME}/.steam/ubuntu12_32/steam-runtime" "${XDG_RUNTIME_DIR:-/run/user/1000}"
+chmod 700 "${XDG_RUNTIME_DIR:-/run/user/1000}" 2>/dev/null || true
 
 unset RUN_GAMESCOPE
 unset RUN_SWAY

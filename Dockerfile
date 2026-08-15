@@ -47,6 +47,7 @@ RUN setcap cap_sys_admin+p $(readlink -f $(which sunshine))
 # WORKDIR must not be $HOME: 10-setup_user.sh runs userdel -r and deletes cwd.
 ENV HOME=/home/retro
 ENV DISPLAY=:0
+ENV XDG_RUNTIME_DIR=/run/user/1000
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=all
 WORKDIR /

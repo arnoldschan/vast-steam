@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
-# /tmp is a tmpfs, so XDG_RUNTIME_DIR from the Steam image does not survive from the image layer.
-# 10-setup_user.sh does chown on it with set -e; missing dir restarts the container.
-# userdel -r also deletes /home/retro while it is still the process cwd.
+# This file is sourced by GOW /entrypoint.sh — never call exit.
+# Steam/dbus need XDG_RUNTIME_DIR owned by uid 1000. GOW steam sets it to
+# /tmp/.X11-unix, which Xorg owns as root.
 set -e
 cd /
-mkdir -p "${XDG_RUNTIME_DIR:-/tmp/.X11-unix}" /run/dbus
-chmod 1777 "${XDG_RUNTIME_DIR:-/tmp/.X11-unix}"
+PUID="${PUID:-1000}"
+PGID="${PGID:-1000}"
 
-# Stale pid from a previous start (or a persisted /run) makes dbus-daemon fail
+mkdir -p /tmp/.X11-unix /run/dbus
+chmod 1777 /tmp/.X11-unix
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/${PUID}}"
+mkdir -p "${XDG_RUNTIME_DIR}"
+chown "${PUID}:${PGID}" "${XDG_RUNTIME_DIR}"
+chmod 700 "${XDG_RUNTIME_DIR}"
+
 if [ -f /run/dbus/pid ]; then
   oldpid="$(cat /run/dbus/pid 2>/dev/null || true)"
   if [ -z "$oldpid" ] || ! kill -0 "$oldpid" 2>/dev/null; then
