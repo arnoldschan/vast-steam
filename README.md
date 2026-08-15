@@ -27,6 +27,8 @@ Default: username `sunshine`, password `sunshine` (override with `SUNSHINE_USERN
 
 ## Tailscale
 
-Set `TS_AUTHKEY` (reusable auth key from the Tailscale admin console) or watch container logs for a login URL.
+Set `TS_AUTHKEY` on the Vast instance (reusable auth key). Do not bake it into the image.
+
+If the host denies TUN, the container falls back to userspace Tailscale so the node can still join the tailnet. TCP pairing/UI can work on `100.x`; UDP video still needs a real TUN device.
 
 Moonlight on the tailnet: add the node’s `100.x` address with **no custom port** (47989). Nintendo Switch cannot run Tailscale; use Moonlight on a phone/PC that is logged into the same tailnet.
