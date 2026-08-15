@@ -70,27 +70,71 @@ def vast_host_ports() -> dict[int, int]:
 
 
 def rewrite_payload(data: bytes, host_ports: dict[int, int]) -> bytes:
-    if not host_ports or not data:
+    if not data:
         return data
-    pairs = []
-    for container_port, internal in [
-        (47984, BASE - 5),
-        (47989, BASE),
-        (47990, BASE + 1),
-        (48010, BASE + 21),
-        (47998, BASE + 9),
-        (47999, BASE + 10),
-        (48000, BASE + 11),
-        (48002, BASE + 13),
-    ]:
-        public = host_ports.get(container_port)
-        if public:
-            pairs.append((str(internal).encode(), str(public).encode()))
-            pairs.append((str(container_port).encode(), str(public).encode()))
-    pairs.sort(key=lambda p: len(p[0]), reverse=True)
-    for old, new in pairs:
-        data = data.replace(old, new)
-    return data
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data
+    https = host_ports.get(47984)
+    http = host_ports.get(47989)
+    if https:
+        text = re.sub(r"(?i)<HttpsPort>\d+</HttpsPort>", f"<HttpsPort>{https}</HttpsPort>", text)
+    if http:
+        text = re.sub(r"(?i)<ExternalPort>\d+</ExternalPort>", f"<ExternalPort>{http}</ExternalPort>", text)
+    return text.encode("utf-8")
+
+
+def scan_public_ports(host_ports: dict[int, int]) -> None:
+    ip = PUBLIC_IP
+    if not ip:
+        return
+    log(f"scanning {ip} for Vast host ports")
+
+    def probe(port: int):
+        s = socket.socket()
+        s.settimeout(0.4)
+        try:
+            s.connect((ip, port))
+        except OSError:
+            s.close()
+            return
+        # HTTP GameStream
+        try:
+            s.sendall(b"GET /serverinfo HTTP/1.0\r\nHost: x\r\n\r\n")
+            buf = s.recv(512)
+            if b"HttpsPort" in buf or b"SUNSHINE" in buf:
+                host_ports[47989] = port
+                log(f"found HTTP GameStream host port {port}")
+                s.close()
+                return
+        except OSError:
+            pass
+        s.close()
+        # TLS: Web UI vs GameStream HTTPS
+        try:
+            raw = socket.create_connection((ip, port), timeout=0.4)
+            ctx = __import__("ssl").create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = __import__("ssl").CERT_NONE
+            tls = ctx.wrap_socket(raw, server_hostname=ip)
+            tls.settimeout(0.6)
+            tls.sendall(b"GET / HTTP/1.0\r\nHost: x\r\n\r\n")
+            buf = tls.recv(200)
+            if b"<!DOCTYPE html>" in buf or b"<html" in buf:
+                host_ports[47990] = port
+                log(f"found Web UI host port {port}")
+            else:
+                host_ports.setdefault(47984, port)
+                log(f"found TLS GameStream host port {port}")
+            tls.close()
+        except OSError:
+            pass
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=32) as pool:
+        list(pool.map(probe, range(30000, 32000)))
+    log(f"scan result {dict(host_ports)}")
 
 
 def pump(a, b):
@@ -126,6 +170,9 @@ def handle_tcp(client, dest_port: int, http_rewrite: bool, host_ports: dict[int,
             req += chunk
         if not req:
             return
+        host_m = re.search(br"(?i)\r\nhost:\s*[^:\r\n]+:(\d+)", req)
+        if host_m:
+            host_ports[47989] = int(host_m.group(1))
         if b"Connection:" in req or b"connection:" in req:
             req = re.sub(br"(?i)connection:\s*[^\r\n]*", b"Connection: close", req)
         elif b"\r\n\r\n" in req:
@@ -191,6 +238,7 @@ def listen_udp(src: int, dest: int):
 
 def main():
     host_ports = vast_host_ports()
+    threading.Thread(target=scan_public_ports, args=(host_ports,), daemon=True).start()
     threads = []
     for src, dest in TCP_MAP:
         t = threading.Thread(
