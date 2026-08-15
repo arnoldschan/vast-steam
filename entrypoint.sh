@@ -4,13 +4,14 @@
 source /opt/gow/bash-lib/utils.sh 2>/dev/null || true
 
 cd "${HOME:-/home/retro}"
-mkdir -p "${HOME}/.config/pulse" "${XDG_RUNTIME_DIR:-/tmp/.X11-unix}"
+mkdir -p "${HOME}/.config/pulse" "${HOME}/.steam/ubuntu12_32/steam-runtime" "${XDG_RUNTIME_DIR:-/tmp/.X11-unix}"
 
-# Do not use gamescope: NVIDIA containers fail vkCreateDevice (Vulkan -7).
 unset RUN_GAMESCOPE
 unset RUN_SWAY
 export DISPLAY="${DISPLAY:-:0}"
-export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-x11}"
+export XAUTHORITY="${XAUTHORITY:-/tmp/.Xauthority}"
+export XDG_SESSION_TYPE=x11
+export SDL_VIDEODRIVER=x11
 export STEAM_STARTUP_FLAGS="${STEAM_STARTUP_FLAGS:--bigpicture}"
 
 if ! pulseaudio --check 2>/dev/null; then
@@ -27,6 +28,15 @@ done
 pactl load-module module-null-sink sink_name=Sunshine_Audio sink_properties=device.description="Sunshine_Audio" >/dev/null 2>&1 || true
 pactl set-default-sink Sunshine_Audio >/dev/null 2>&1 || true
 
+gow_log "DISPLAY=${DISPLAY} XAUTHORITY=${XAUTHORITY}"
+if ! xdpyinfo >/dev/null 2>&1; then
+  gow_log "WARNING: cannot open X display ${DISPLAY} as $(id -un)"
+  ls -la /tmp/.X11-unix 2>&1 || true
+  xdpyinfo 2>&1 | head -n 20 || true
+else
+  gow_log "X display ${DISPLAY} is usable"
+fi
+
 (
   for _ in $(seq 1 180); do
     if xdpyinfo >/dev/null 2>&1; then
@@ -37,8 +47,40 @@ pactl set-default-sink Sunshine_Audio >/dev/null 2>&1 || true
   echo "Sunshine: gave up waiting for X display ${DISPLAY}" >&2
 ) &
 
+steam_still_running() {
+  pgrep -u "$(id -u)" -x steam >/dev/null 2>&1 \
+    || pgrep -u "$(id -u)" -f 'steamwebhelper|steam\.sh|ubuntu12_32/steam' >/dev/null 2>&1
+}
+
 while true; do
-  /opt/gow/startup-app.sh || true
-  echo "Steam exited; restarting in 5s" >&2
+  if steam_still_running; then
+    gow_log "Steam already running; waiting"
+    while steam_still_running; do
+      sleep 10
+    done
+    gow_log "Steam processes ended; restarting in 5s"
+    sleep 5
+    continue
+  fi
+
+  gow_log "Starting Steam ${STEAM_STARTUP_FLAGS}"
+  if command -v dbus-run-session >/dev/null; then
+    dbus-run-session -- /usr/games/steam ${STEAM_STARTUP_FLAGS} >>/tmp/steam.log 2>&1 &
+  else
+    /usr/games/steam ${STEAM_STARTUP_FLAGS} >>/tmp/steam.log 2>&1 &
+  fi
+  steam_pid=$!
+  sleep 6
+  if ! steam_still_running && ! kill -0 "$steam_pid" 2>/dev/null; then
+    gow_log "Steam wrapper exited immediately; last log lines:"
+    tail -n 40 /tmp/steam.log 2>/dev/null || true
+    sleep 5
+    continue
+  fi
+  while kill -0 "$steam_pid" 2>/dev/null || steam_still_running; do
+    sleep 8
+  done
+  gow_log "Steam exited; last log lines:"
+  tail -n 40 /tmp/steam.log 2>/dev/null || true
   sleep 5
 done

@@ -22,11 +22,20 @@ else
   fi
 fi
 
-if xdpyinfo >/dev/null 2>&1; then
-  gow_log "X display ${DISPLAY} already available"
-  xhost +SI:localuser:retro >/dev/null 2>&1 || xhost +local: >/dev/null 2>&1 || true
+allow_x() {
+  xhost + >/dev/null 2>&1 || true
+  xhost +SI:localuser:retro >/dev/null 2>&1 || true
+  xhost +local: >/dev/null 2>&1 || true
   chmod 1777 /tmp/.X11-unix 2>/dev/null || true
   chmod 666 /tmp/.X11-unix/X* 2>/dev/null || true
+  touch /tmp/.Xauthority
+  chmod 666 /tmp/.Xauthority
+  xauth -f /tmp/.Xauthority generate "${DISPLAY}" . trusted >/dev/null 2>&1 || true
+}
+
+if xdpyinfo >/dev/null 2>&1; then
+  gow_log "X display ${DISPLAY} already available"
+  allow_x
 else
   rm -f /tmp/.X0-lock "/tmp/.X${DISPLAY#:}-lock"
   gow_log "Starting NVIDIA Xorg on ${DISPLAY}"
@@ -46,9 +55,7 @@ else
     if xdpyinfo >/dev/null 2>&1; then
       gow_log "Xorg is up on ${DISPLAY}"
       x_ok=1
-      xhost +SI:localuser:retro >/dev/null 2>&1 || xhost +local: >/dev/null 2>&1 || true
-      chmod 1777 /tmp/.X11-unix 2>/dev/null || true
-      chmod 666 /tmp/.X11-unix/X* 2>/dev/null || true
+      allow_x
       break
     fi
     sleep 0.2

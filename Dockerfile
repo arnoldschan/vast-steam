@@ -21,6 +21,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xvfb \
     x11-utils \
     x11-xserver-utils \
+    xauth \
+    dbus-x11 \
     xserver-xorg-core \
     xserver-xorg-input-libinput \
     && rm -rf /var/lib/apt/lists/*
