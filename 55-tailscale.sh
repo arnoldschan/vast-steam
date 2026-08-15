@@ -12,7 +12,7 @@ if ! pidof tailscaled >/dev/null 2>&1; then
     --state=/var/lib/tailscale/tailscaled.state \
     --socket=/run/tailscale/tailscaled.sock \
     --port=41641 \
-    >/tmp/tailscaled.log 2>&1 &
+    >/proc/1/fd/1 2>/proc/1/fd/2 &
 fi
 
 (
@@ -37,5 +37,5 @@ fi
   echo "=== tailscale ip ==="
   tailscale --socket=/run/tailscale/tailscaled.sock ip -4 || true
   cat /tmp/tailscale-up.log 2>/dev/null || true
-) >/tmp/tailscale.log 2>&1 &
+) 2>&1 | tee /tmp/tailscale.log >/proc/1/fd/1 &
 true
