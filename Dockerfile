@@ -45,27 +45,16 @@ RUN wget -O /tmp/tailscale.tgz "https://pkgs.tailscale.com/stable/tailscale_late
     && install -m 755 "$TS_DIR/tailscaled" /usr/sbin/tailscaled \
     && rm -rf /tmp/tailscale.tgz "$TS_DIR"
 
-# v0.23.1 still initializes X11 capture. 2026 AppImage fails x11 on Vast
-# ("Unable to initialize capture method") and KMS is black without SYS_ADMIN.
-RUN wget --tries=5 --retry-connrefused -O /tmp/sunshine.AppImage \
-      "https://github.com/LizardByte/Sunshine/releases/download/v0.23.1/sunshine.AppImage" \
-    && chmod +x /tmp/sunshine.AppImage \
-    && mkdir -p /opt/sunshine \
-    && OFFSET="$(python3 -c "p=open('/tmp/sunshine.AppImage','rb').read(); print(p.find(b'hsqs'))")" \
-    && test "$OFFSET" -gt 0 \
-    && unsquashfs -o "$OFFSET" -d /opt/sunshine/squashfs-root /tmp/sunshine.AppImage \
-    && SUNSHINE_BIN="$(find /opt/sunshine/squashfs-root -type f -name sunshine | head -n 1)" \
-    && test -n "$SUNSHINE_BIN" \
-    && chmod +x "$SUNSHINE_BIN" \
-    && ln -sf "$SUNSHINE_BIN" /usr/local/bin/sunshine \
-    && mkdir -p /usr/share/sunshine \
-    && if [ -d /opt/sunshine/squashfs-root/usr/share/sunshine ]; then \
-         cp -a /opt/sunshine/squashfs-root/usr/share/sunshine/. /usr/share/sunshine/; \
-       fi \
-    && rm -f /tmp/sunshine.AppImage
-
-# File caps make Sunshine use KMS (black on Vast). Drop them so X11 capture works.
-RUN setcap -r $(readlink -f $(which sunshine)) 2>/dev/null || true
+# Ubuntu 24.04 .deb still has working X11 capture; the 2026 AppImage does not.
+RUN wget --tries=5 --retry-connrefused -O /tmp/sunshine.deb \
+      "https://github.com/LizardByte/Sunshine/releases/download/v2025.122.141614/sunshine-ubuntu-24.04-amd64.deb" \
+    && apt-get update \
+    && { dpkg -i /tmp/sunshine.deb || true; } \
+    && apt-get install -y -f --no-install-recommends \
+    && rm -f /tmp/sunshine.deb \
+    && test -x /usr/bin/sunshine \
+    && setcap -r /usr/bin/sunshine 2>/dev/null || true \
+    && rm -rf /var/lib/apt/lists/*
 
 # Games on Whales uses UNAME=retro, HOME=/home/retro (not "user")
 # WORKDIR must not be $HOME: 10-setup_user.sh runs userdel -r and deletes cwd.

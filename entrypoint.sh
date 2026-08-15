@@ -81,7 +81,7 @@ if [ -n "$CSRF_ORIGINS" ]; then
     >> "${HOME}/.config/sunshine/sunshine.conf"
   gow_log "Sunshine CSRF origins: ${CSRF_ORIGINS}"
 fi
-APPS_JSON="$(find /opt/sunshine/squashfs-root -name apps.json 2>/dev/null | head -n 1)"
+APPS_JSON="$(find /usr/share/sunshine /usr/lib/sunshine /opt/sunshine -name apps.json 2>/dev/null | head -n 1)"
 if [ -n "$APPS_JSON" ] && [ ! -f "${HOME}/.config/sunshine/apps.json" ]; then
   cp "$APPS_JSON" "${HOME}/.config/sunshine/apps.json"
 fi
@@ -90,8 +90,7 @@ fi
 # the /welcome form (that form never sends Authorization and the UI spins forever).
 SUNSHINE_USERNAME="${SUNSHINE_USERNAME:-sunshine}"
 SUNSHINE_PASSWORD="${SUNSHINE_PASSWORD:-sunshine}"
-cd /opt/sunshine/squashfs-root
-./usr/bin/sunshine "${HOME}/.config/sunshine/sunshine.conf" \
+/usr/bin/sunshine "${HOME}/.config/sunshine/sunshine.conf" \
   --creds "${SUNSHINE_USERNAME}" "${SUNSHINE_PASSWORD}" \
   >>/tmp/sunshine-creds.log 2>&1 || true
 gow_log "Sunshine Web UI login: ${SUNSHINE_USERNAME} / (SUNSHINE_PASSWORD)"
@@ -109,4 +108,4 @@ if [ "${SUNSHINE_BASE_PORT}" = "46989" ]; then
   exec python3 /opt/gow/ui-proxy.py
 ) >>/tmp/ui-proxy.log 2>&1 &
 fi
-exec ./usr/bin/sunshine "${HOME}/.config/sunshine/sunshine.conf"
+exec /usr/bin/sunshine "${HOME}/.config/sunshine/sunshine.conf"
