@@ -20,6 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfuse2t64 \
     xvfb \
     x11-utils \
+    xserver-xorg-core \
+    xserver-xorg-input-libinput \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Sunshine via AppImage so it matches Ubuntu 25.04 (GOW steam:master).
@@ -41,9 +43,9 @@ RUN setcap cap_sys_admin+p $(readlink -f $(which sunshine))
 # Games on Whales uses UNAME=retro, HOME=/home/retro (not "user")
 # WORKDIR must not be $HOME: 10-setup_user.sh runs userdel -r and deletes cwd.
 ENV HOME=/home/retro
-ENV RUN_GAMESCOPE=1
-ENV GAMESCOPE_MODE="--backend headless -b"
-ENV ENABLE_GAMESCOPE_WSI=0
+ENV DISPLAY=:0
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=all
 WORKDIR /
 
 # Pre-create directory structures for the persistent volume mounts
@@ -60,6 +62,8 @@ RUN echo '{"CompatToolMapping":{"2394300":{"name":"proton_experimental","config"
 
 COPY --chmod=755 00-xdg-runtime.sh /etc/cont-init.d/00-xdg-runtime.sh
 COPY --chmod=755 20-fix-home-perms.sh /etc/cont-init.d/20-fix-home-perms.sh
+COPY --chmod=755 40-xorg.sh /etc/cont-init.d/40-xorg.sh
+COPY --chmod=644 xorg-nvidia.conf /etc/X11/xorg-nvidia.conf
 COPY --chmod=755 system-services.sh /etc/cont-init.d/system-services.sh
 
 # Wrap GOW startup so PulseAudio and Sunshine run as retro, then Steam
