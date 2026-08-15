@@ -43,15 +43,44 @@ SUNSHINE_BASE_PORT="${SUNSHINE_BASE_PORT:-46989}"
 sed -i "s/^port = .*/port = ${SUNSHINE_BASE_PORT}/" "${HOME}/.config/sunshine/sunshine.conf"
 gow_log "Sunshine base port ${SUNSHINE_BASE_PORT}"
 PUBLIC_IP="$(curl -4 -fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)"
-if [ -n "$PUBLIC_IP" ]; then
-  # Only https:// prefixes are accepted; they also match https://IP:mappedPort
-  printf '\ncsrf_allowed_origins = https://%s\n' "$PUBLIC_IP" \
-    >> "${HOME}/.config/sunshine/sunshine.conf"
-  gow_log "Sunshine CSRF origins include https://${PUBLIC_IP}"
-fi
+TS_SOCK=/run/tailscale/tailscaled.sock
+TS_IP=""
+TS_DNS=""
+for _ in $(seq 1 40); do
+  if [ -S "$TS_SOCK" ]; then
+    TS_IP="$(tailscale --socket="$TS_SOCK" ip -4 2>/dev/null | head -n 1 || true)"
+    if [ -n "$TS_IP" ]; then
+      TS_DNS="$(tailscale --socket="$TS_SOCK" status --json 2>/dev/null \
+        | python3 -c "import json,sys; print((json.load(sys.stdin).get('Self') or {}).get('DNSName') or '')" 2>/dev/null || true)"
+      TS_DNS="${TS_DNS%.}"
+      break
+    fi
+  fi
+  sleep 0.25
+done
+CSRF_ORIGINS=""
+append_csrf() {
+  case ",${CSRF_ORIGINS}," in
+    *",$1,"*) ;;
+    *)
+      if [ -n "$CSRF_ORIGINS" ]; then
+        CSRF_ORIGINS="${CSRF_ORIGINS},$1"
+      else
+        CSRF_ORIGINS="$1"
+      fi
+      ;;
+  esac
+}
+[ -n "$PUBLIC_IP" ] && append_csrf "https://${PUBLIC_IP}"
+[ -n "$TS_IP" ] && append_csrf "https://${TS_IP}"
+[ -n "$TS_DNS" ] && append_csrf "https://${TS_DNS}"
 if [ -n "${CSRF_ALLOWED_ORIGINS:-}" ]; then
-  printf '\ncsrf_allowed_origins = %s\n' "$CSRF_ALLOWED_ORIGINS" \
+  CSRF_ORIGINS="${CSRF_ORIGINS:+${CSRF_ORIGINS},}${CSRF_ALLOWED_ORIGINS}"
+fi
+if [ -n "$CSRF_ORIGINS" ]; then
+  printf '\ncsrf_allowed_origins = %s\n' "$CSRF_ORIGINS" \
     >> "${HOME}/.config/sunshine/sunshine.conf"
+  gow_log "Sunshine CSRF origins: ${CSRF_ORIGINS}"
 fi
 APPS_JSON="$(find /opt/sunshine/squashfs-root -name apps.json 2>/dev/null | head -n 1)"
 if [ -n "$APPS_JSON" ] && [ ! -f "${HOME}/.config/sunshine/apps.json" ]; then
