@@ -10,6 +10,8 @@ mkdir -p "${HOME}/.config/pulse" "${XDG_RUNTIME_DIR:-/tmp/.X11-unix}"
 unset RUN_GAMESCOPE
 unset RUN_SWAY
 export DISPLAY="${DISPLAY:-:0}"
+export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-x11}"
+export STEAM_STARTUP_FLAGS="${STEAM_STARTUP_FLAGS:--bigpicture}"
 
 if ! pulseaudio --check 2>/dev/null; then
   pulseaudio --start --exit-idle-time=-1 --disallow-exit --log-level=1 >/dev/null 2>&1 || true

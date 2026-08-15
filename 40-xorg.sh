@@ -1,48 +1,66 @@
 #!/usr/bin/env bash
 # Gamescope vkCreateDevice fails with VK_ERROR_EXTENSION_NOT_PRESENT (-7) on
 # NVIDIA in containers. Use a headless NVIDIA Xorg instead.
+# This file is sourced by GOW /entrypoint.sh — never call exit.
 set +e
 source /opt/gow/bash-lib/utils.sh 2>/dev/null || true
 
 export DISPLAY="${DISPLAY:-:0}"
 
-if xdpyinfo >/dev/null 2>&1; then
-  gow_log "X display ${DISPLAY} already available"
-  set -e
-  exit 0
-fi
-
-mkdir -p /tmp/.X11-unix /var/log
+mkdir -p /tmp/.X11-unix /var/log /run/dbus
 chmod 1777 /tmp/.X11-unix
 
-gow_log "Starting NVIDIA Xorg on ${DISPLAY}"
-# -noreset keeps the server up if clients disconnect
-Xorg "${DISPLAY}" \
-  -config /etc/X11/xorg-nvidia.conf \
-  -noreset \
-  -nolisten tcp \
-  +extension GLX \
-  +extension RANDR \
-  +extension RENDER \
-  -logfile /tmp/Xorg.log \
-  vt8 \
-  >/tmp/Xorg.stdout 2>&1 &
-
-for _ in $(seq 1 50); do
-  if xdpyinfo >/dev/null 2>&1; then
-    gow_log "Xorg is up on ${DISPLAY}"
-    set -e
-    exit 0
+if [ -S /run/dbus/system_bus_socket ] || [ -S /var/run/dbus/system_bus_socket ]; then
+  true
+else
+  mkdir -p /run/dbus
+  if [ -f /run/dbus/pid ] && ! kill -0 "$(cat /run/dbus/pid 2>/dev/null)" 2>/dev/null; then
+    rm -f /run/dbus/pid
   fi
-  sleep 0.2
-done
+  if ! pgrep -x dbus-daemon >/dev/null 2>&1; then
+    dbus-daemon --system --fork --nosyslog 2>/dev/null || true
+  fi
+fi
 
-gow_log "NVIDIA Xorg failed; last log lines:"
-tail -n 40 /tmp/Xorg.log 2>/dev/null || true
-tail -n 20 /tmp/Xorg.stdout 2>/dev/null || true
+if xdpyinfo >/dev/null 2>&1; then
+  gow_log "X display ${DISPLAY} already available"
+  xhost +SI:localuser:retro >/dev/null 2>&1 || xhost +local: >/dev/null 2>&1 || true
+  chmod 1777 /tmp/.X11-unix 2>/dev/null || true
+  chmod 666 /tmp/.X11-unix/X* 2>/dev/null || true
+else
+  rm -f /tmp/.X0-lock "/tmp/.X${DISPLAY#:}-lock"
+  gow_log "Starting NVIDIA Xorg on ${DISPLAY}"
+  Xorg "${DISPLAY}" \
+    -config /etc/X11/xorg-nvidia.conf \
+    -noreset \
+    -nolisten tcp \
+    +extension GLX \
+    +extension RANDR \
+    +extension RENDER \
+    -logfile /tmp/Xorg.log \
+    vt8 \
+    >/tmp/Xorg.stdout 2>&1 &
 
-if command -v Xvfb >/dev/null; then
-  gow_log "Falling back to Xvfb (no GPU acceleration)"
-  Xvfb "${DISPLAY}" -screen 0 1920x1080x24 +extension GLX >/tmp/Xvfb.log 2>&1 &
+  x_ok=0
+  for _ in $(seq 1 50); do
+    if xdpyinfo >/dev/null 2>&1; then
+      gow_log "Xorg is up on ${DISPLAY}"
+      x_ok=1
+      xhost +SI:localuser:retro >/dev/null 2>&1 || xhost +local: >/dev/null 2>&1 || true
+      chmod 1777 /tmp/.X11-unix 2>/dev/null || true
+      chmod 666 /tmp/.X11-unix/X* 2>/dev/null || true
+      break
+    fi
+    sleep 0.2
+  done
+
+  if [ "$x_ok" != 1 ]; then
+    gow_log "NVIDIA Xorg failed; last log lines:"
+    tail -n 40 /tmp/Xorg.log 2>/dev/null || true
+    if command -v Xvfb >/dev/null && ! xdpyinfo >/dev/null 2>&1; then
+      gow_log "Falling back to Xvfb (no GPU acceleration)"
+      Xvfb "${DISPLAY}" -screen 0 1920x1080x24 +extension GLX >/tmp/Xvfb.log 2>&1 &
+    fi
+  fi
 fi
 set -e

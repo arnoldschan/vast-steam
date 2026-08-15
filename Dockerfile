@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfuse2t64 \
     xvfb \
     x11-utils \
+    x11-xserver-utils \
     xserver-xorg-core \
     xserver-xorg-input-libinput \
     && rm -rf /var/lib/apt/lists/*
