@@ -64,38 +64,46 @@ gow_log "Starting Sunshine web UI on 0.0.0.0:47990"
 
 steam_still_running() {
   pgrep -u "$(id -u)" -x steam >/dev/null 2>&1 \
-    || pgrep -u "$(id -u)" -f 'steamwebhelper|steam\.sh|ubuntu12_32/steam' >/dev/null 2>&1
+    || pgrep -u "$(id -u)" -f 'steamwebhelper|ubuntu12_32/steam$' >/dev/null 2>&1
 }
 
+# Do not hammer Steam when there is no X display — that starves Sunshine's web UI.
 while true; do
+  if ! xdpyinfo >/dev/null 2>&1; then
+    gow_log "No X display; not starting Steam (Sunshine UI stays up)"
+    sleep 60
+    continue
+  fi
+
   if steam_still_running; then
     gow_log "Steam already running; waiting"
     while steam_still_running; do
-      sleep 10
+      sleep 15
     done
-    gow_log "Steam processes ended; restarting in 5s"
-    sleep 5
+    gow_log "Steam processes ended; waiting 30s before restart"
+    sleep 30
     continue
   fi
 
   gow_log "Starting Steam ${STEAM_STARTUP_FLAGS}"
+  : >/tmp/steam.log
   if command -v dbus-run-session >/dev/null; then
     dbus-run-session -- /usr/games/steam ${STEAM_STARTUP_FLAGS} >>/tmp/steam.log 2>&1 &
   else
     /usr/games/steam ${STEAM_STARTUP_FLAGS} >>/tmp/steam.log 2>&1 &
   fi
   steam_pid=$!
-  sleep 6
+  sleep 8
   if ! steam_still_running && ! kill -0 "$steam_pid" 2>/dev/null; then
-    gow_log "Steam wrapper exited immediately; last log lines:"
-    tail -n 40 /tmp/steam.log 2>/dev/null || true
-    sleep 5
+    gow_log "Steam exited immediately; backing off 60s. Log:"
+    tail -n 30 /tmp/steam.log 2>/dev/null || true
+    sleep 60
     continue
   fi
   while kill -0 "$steam_pid" 2>/dev/null || steam_still_running; do
-    sleep 8
+    sleep 15
   done
-  gow_log "Steam exited; last log lines:"
-  tail -n 40 /tmp/steam.log 2>/dev/null || true
-  sleep 5
+  gow_log "Steam exited; backing off 30s. Log:"
+  tail -n 30 /tmp/steam.log 2>/dev/null || true
+  sleep 30
 done
