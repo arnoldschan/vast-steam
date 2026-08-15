@@ -50,11 +50,9 @@ RUN mkdir -p $HOME/.steam/steam/config/ \
 RUN echo '{"CompatToolMapping":{"2394300":{"name":"proton_experimental","config":"","priority":250}}}' \
     > $HOME/.steam/steam/config/config.vdf
 
-# Copy an entrypoint script to launch virtual audio and display automatically
-COPY --chown=1000:1000 entrypoint.sh /home/retro/entrypoint.sh
-RUN chmod +x /home/retro/entrypoint.sh
+# Wrap GOW startup so PulseAudio and Sunshine run as retro, then Steam
+COPY --chmod=755 entrypoint.sh /opt/gow/startup.sh
 
+# Keep Games on Whales /entrypoint.sh (runs cont-init.d, then gosu retro)
 # Expose Sunshine's UI and streaming traffic ports
 EXPOSE 47984-47990/tcp 47984-47990/udp 48010/tcp
-
-ENTRYPOINT ["/home/retro/entrypoint.sh"]
