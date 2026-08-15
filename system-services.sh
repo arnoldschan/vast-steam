@@ -2,7 +2,9 @@
 
 source /opt/gow/bash-lib/utils.sh
 
-# Steam Big Picture First time setup needs a couple of services
+# This file is sourced by GOW /entrypoint.sh under set -e. Optional host
+# services (BlueZ, NetworkManager) often fail in GPU cloud containers.
+set +e
 
 mkdir -p /run/dbus
 if [ -f /run/dbus/pid ]; then
@@ -17,19 +19,24 @@ if ! pgrep -x dbus-daemon >/dev/null 2>&1; then
 else
   gow_log "*** DBus already running ***"
 fi
-bluetoothd --nodetach &
-gow_log "*** Bluez started ***"
-NetworkManager
-gow_log "*** NetworkManager started ***"
-# Watchdog will stop steam when selecting Turn off, Suspend or Restart from the Steam power menu
+
+if [ -d /sys/class/bluetooth ] && [ -n "$(ls -A /sys/class/bluetooth 2>/dev/null)" ]; then
+  bluetoothd --nodetach &
+  gow_log "*** Bluez started ***"
+else
+  gow_log "*** Bluez skipped (no Bluetooth adapter) ***"
+fi
+
+if pgrep -x NetworkManager >/dev/null 2>&1; then
+  gow_log "*** NetworkManager already running ***"
+else
+  NetworkManager
+  gow_log "*** NetworkManager started ***"
+fi
+
 steamos-dbus-watchdog.sh &
 gow_log "*** D-Bus Watchdog started ***"
 
-# Install Decky Loader. The PluginLoader binary is baked into the image
-# at /opt/decky/PluginLoader during build (see Dockerfile), so this
-# first-run install is offline and deterministic — the cont-init smoke
-# test no longer depends on the GitHub releases API rate limit, and
-# fresh user containers do not roll the rate-limit dice on every start.
 if [ ! -f "$HOME/homebrew/services/PluginLoader" ]; then
   gow_log "Installing Decky Loader"
   mkdir -p "$HOME/.steam/steam/"
@@ -40,8 +47,10 @@ if [ ! -f "$HOME/homebrew/services/PluginLoader" ]; then
   chmod +x "$HOME/homebrew/services/PluginLoader"
 fi
 
-# Start Decky Loader
-gow_log "*** Decky Loader started ***"
-$HOME/homebrew/services/PluginLoader &
+if [ -x "$HOME/homebrew/services/PluginLoader" ]; then
+  gow_log "*** Decky Loader started ***"
+  "$HOME/homebrew/services/PluginLoader" &
+fi
 
-disown
+disown 2>/dev/null
+set -e
