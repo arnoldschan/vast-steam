@@ -51,9 +51,9 @@ RUN wget --tries=5 --retry-connrefused -O /tmp/sunshine.AppImage \
       "https://github.com/LizardByte/Sunshine/releases/download/v0.23.1/sunshine.AppImage" \
     && chmod +x /tmp/sunshine.AppImage \
     && mkdir -p /opt/sunshine \
-    && cd /opt/sunshine \
-    && (/tmp/sunshine.AppImage --appimage-extract || true) \
-    && test -d /opt/sunshine/squashfs-root \
+    && OFFSET="$(python3 -c "p=open('/tmp/sunshine.AppImage','rb').read(); print(p.find(b'hsqs'))")" \
+    && test "$OFFSET" -gt 0 \
+    && unsquashfs -o "$OFFSET" -d /opt/sunshine/squashfs-root /tmp/sunshine.AppImage \
     && SUNSHINE_BIN="$(find /opt/sunshine/squashfs-root -type f -name sunshine | head -n 1)" \
     && test -n "$SUNSHINE_BIN" \
     && chmod +x "$SUNSHINE_BIN" \
