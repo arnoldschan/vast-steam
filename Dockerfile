@@ -45,30 +45,21 @@ RUN wget -O /tmp/tailscale.tgz "https://pkgs.tailscale.com/stable/tailscale_late
     && install -m 755 "$TS_DIR/tailscaled" /usr/sbin/tailscaled \
     && rm -rf /tmp/tailscale.tgz "$TS_DIR"
 
-# Pin a release that still does X11 capture. Latest AppImage download is flaky
-# and current Sunshine prefers KMS (black on Vast without SYS_ADMIN).
-RUN wget -O /tmp/sunshine.AppImage \
-      "https://github.com/LizardByte/Sunshine/releases/download/v2025.122.141614/sunshine.AppImage" \
+# Install Sunshine via AppImage (Ubuntu 25.04 / Plucky has no official .deb).
+RUN wget --tries=5 --retry-connrefused -O /tmp/sunshine.AppImage \
+      "https://github.com/LizardByte/Sunshine/releases/latest/download/sunshine.AppImage" \
     && chmod +x /tmp/sunshine.AppImage \
     && mkdir -p /opt/sunshine \
-    && OFFSET="$(/tmp/sunshine.AppImage --appimage-offset 2>/dev/null || true)" \
-    && if [ -n "$OFFSET" ]; then \
-         unsquashfs -o "$OFFSET" -d /opt/sunshine/squashfs-root /tmp/sunshine.AppImage; \
-       else \
-         cd /opt/sunshine && /tmp/sunshine.AppImage --appimage-extract; \
-       fi \
-    && test -d /opt/sunshine/squashfs-root \
-    && SUNSHINE_BIN="$(find /opt/sunshine/squashfs-root -type f -name sunshine | head -n 1)" \
+    && cd /opt/sunshine \
+    && /tmp/sunshine.AppImage --appimage-extract \
+    && SUNSHINE_BIN="$(find /opt/sunshine/squashfs-root -type f -name sunshine -perm -111 | head -n 1)" \
     && test -n "$SUNSHINE_BIN" \
-    && chmod +x "$SUNSHINE_BIN" \
     && ln -sf "$SUNSHINE_BIN" /usr/local/bin/sunshine \
     && mkdir -p /usr/share/sunshine \
-    && if [ -d /opt/sunshine/squashfs-root/usr/share/sunshine ]; then \
-         cp -a /opt/sunshine/squashfs-root/usr/share/sunshine/. /usr/share/sunshine/; \
-       fi \
+    && cp -a /opt/sunshine/squashfs-root/usr/share/sunshine/. /usr/share/sunshine/ \
     && rm -f /tmp/sunshine.AppImage
 
-# KMS needs file caps; those break X11 capture. Vast also denies SYS_ADMIN, so use X11.
+# File caps make Sunshine use KMS (black on Vast). Drop them so X11 capture works.
 RUN setcap -r $(readlink -f $(which sunshine)) 2>/dev/null || true
 
 # Games on Whales uses UNAME=retro, HOME=/home/retro (not "user")
