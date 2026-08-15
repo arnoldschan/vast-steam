@@ -38,10 +38,16 @@ else
 fi
 
 mkdir -p "${HOME}/.config/sunshine"
+# Fresh conf every boot. Drop saved Sunshine users so the UI is not stuck on HTTP Basic
+# (the SPA keeps calling /api/* without Authorization and spins forever).
+rm -f "${HOME}/.config/sunshine/credentials.json" \
+  "${HOME}/.config/sunshine/credentials" \
+  "${HOME}/.config/sunshine/sunshine_state.json"
 cp /opt/gow/sunshine.conf "${HOME}/.config/sunshine/sunshine.conf"
 PUBLIC_IP="$(curl -4 -fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)"
 if [ -n "$PUBLIC_IP" ]; then
-  printf '\ncsrf_allowed_origins = https://%s,http://%s\n' "$PUBLIC_IP" "$PUBLIC_IP" \
+  # Only https:// prefixes are accepted; they also match https://IP:mappedPort
+  printf '\ncsrf_allowed_origins = https://%s\n' "$PUBLIC_IP" \
     >> "${HOME}/.config/sunshine/sunshine.conf"
   gow_log "Sunshine CSRF origins include https://${PUBLIC_IP}"
 fi
