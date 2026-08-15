@@ -28,7 +28,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iptables \
     openssl \
     python3 \
+    iproute2 \
     && rm -rf /var/lib/apt/lists/*
+
+# Tailscale: Moonlight uses default Sunshine ports on the 100.x tailnet IP
+RUN wget -O /tmp/tailscale.tgz "https://pkgs.tailscale.com/stable/tailscale_latest_amd64.tgz" \
+    && tar -xzf /tmp/tailscale.tgz -C /tmp \
+    && TS_DIR="$(find /tmp -maxdepth 1 -type d -name 'tailscale_*' | head -n 1)" \
+    && test -n "$TS_DIR" \
+    && install -m 755 "$TS_DIR/tailscale" /usr/bin/tailscale \
+    && install -m 755 "$TS_DIR/tailscaled" /usr/sbin/tailscaled \
+    && rm -rf /tmp/tailscale.tgz "$TS_DIR"
 
 # Install Sunshine via AppImage so it matches Ubuntu 25.04 (GOW steam:master).
 # Official .deb builds are only for 22.04 / 24.04 / 26.04 and fail on Plucky.
@@ -75,6 +85,7 @@ COPY --chmod=755 40-xorg.sh /etc/cont-init.d/40-xorg.sh
 COPY --chmod=644 xorg-nvidia.conf /etc/X11/xorg-nvidia.conf
 COPY --chmod=755 system-services.sh /etc/cont-init.d/system-services.sh
 COPY --chmod=755 50-ui-proxy.sh /etc/cont-init.d/50-ui-proxy.sh
+COPY --chmod=755 55-tailscale.sh /etc/cont-init.d/55-tailscale.sh
 COPY --chmod=755 ui-proxy.py /opt/gow/ui-proxy.py
 COPY --chmod=755 gs-forward.py /opt/gow/gs-forward.py
 
