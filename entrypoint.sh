@@ -40,6 +40,16 @@ fi
 
 mkdir -p "${HOME}/.config/sunshine"
 cp /opt/gow/sunshine.conf "${HOME}/.config/sunshine/sunshine.conf"
+PUBLIC_IP="$(curl -4 -fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)"
+if [ -n "$PUBLIC_IP" ]; then
+  printf '\ncsrf_allowed_origins = https://%s,http://%s\n' "$PUBLIC_IP" "$PUBLIC_IP" \
+    >> "${HOME}/.config/sunshine/sunshine.conf"
+  gow_log "Sunshine CSRF origins include https://${PUBLIC_IP}"
+fi
+if [ -n "${CSRF_ALLOWED_ORIGINS:-}" ]; then
+  printf '\ncsrf_allowed_origins = %s\n' "$CSRF_ALLOWED_ORIGINS" \
+    >> "${HOME}/.config/sunshine/sunshine.conf"
+fi
 APPS_JSON="$(find /opt/sunshine/squashfs-root -name apps.json 2>/dev/null | head -n 1)"
 if [ -n "$APPS_JSON" ] && [ ! -f "${HOME}/.config/sunshine/apps.json" ]; then
   cp "$APPS_JSON" "${HOME}/.config/sunshine/apps.json"
