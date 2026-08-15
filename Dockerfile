@@ -50,6 +50,9 @@ RUN mkdir -p $HOME/.steam/steam/config/ \
 RUN echo '{"CompatToolMapping":{"2394300":{"name":"proton_experimental","config":"","priority":250}}}' \
     > $HOME/.steam/steam/config/config.vdf
 
+# /tmp is tmpfs at runtime; create XDG_RUNTIME_DIR before GOW 10-setup_user.sh chowns it
+COPY --chmod=755 00-xdg-runtime.sh /etc/cont-init.d/00-xdg-runtime.sh
+
 # Wrap GOW startup so PulseAudio and Sunshine run as retro, then Steam
 COPY --chmod=755 entrypoint.sh /opt/gow/startup.sh
 
