@@ -76,6 +76,7 @@ COPY --chmod=644 xorg-nvidia.conf /etc/X11/xorg-nvidia.conf
 COPY --chmod=755 system-services.sh /etc/cont-init.d/system-services.sh
 COPY --chmod=755 50-ui-proxy.sh /etc/cont-init.d/50-ui-proxy.sh
 COPY --chmod=755 ui-proxy.py /opt/gow/ui-proxy.py
+COPY --chmod=755 gs-forward.py /opt/gow/gs-forward.py
 
 # Wrap GOW startup: PulseAudio + Sunshine as retro (Steam is launched manually)
 COPY --chmod=644 sunshine.conf /opt/gow/sunshine.conf

@@ -68,9 +68,12 @@ gow_log "Sunshine Web UI login: ${SUNSHINE_USERNAME} / (SUNSHINE_PASSWORD)"
 gow_log "Starting Sunshine (Steam is not auto-started)"
 (
   for _ in $(seq 1 40); do
-    python3 -c "import socket; s=socket.create_connection(('127.0.0.1',46990),1); s.close()" 2>/dev/null && break
+    python3 -c "import socket; s=socket.create_connection(('127.0.0.1',46989),1); s.close(); s=socket.create_connection(('127.0.0.1',46990),1); s.close()" 2>/dev/null && break
     sleep 0.25
   done
+  export PUBLIC_IP="${PUBLIC_IP}"
+  python3 /opt/gow/gs-forward.py >>/tmp/gs-forward.log 2>&1 &
+  python3 -c "import socket; s=socket.create_connection(('127.0.0.1',46990),1); s.close()" 2>/dev/null || true
   gow_log "Starting Sunshine Web UI proxy on :47990 -> 127.0.0.1:46990"
   exec python3 /opt/gow/ui-proxy.py
 ) >>/tmp/ui-proxy.log 2>&1 &
