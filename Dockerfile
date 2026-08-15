@@ -6,6 +6,7 @@ USER root
 
 # Prevent interactive prompts during installation
 ENV DEBIAN_FRONTEND=noninteractive
+ENV APPIMAGE_EXTRACT_AND_RUN=1
 
 # Update and install utilities, virtual audio drivers, and Sunshine dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -16,37 +17,44 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     curl \
     ca-certificates \
+    libfuse2t64 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the latest stable Sunshine Ubuntu 22.04 amd64 package
-RUN wget -O /tmp/sunshine.deb \
-    "https://github.com/LizardByte/Sunshine/releases/latest/download/sunshine-ubuntu-22.04-amd64.deb" \
-    && apt-get update \
-    && apt-get install -y /tmp/sunshine.deb \
-    && rm -rf /var/lib/apt/lists/* /tmp/sunshine.deb
+# Install Sunshine via AppImage so it matches Ubuntu 25.04 (GOW steam:master).
+# Official .deb builds are only for 22.04 / 24.04 / 26.04 and fail on Plucky.
+RUN wget -O /tmp/sunshine.AppImage \
+      "https://github.com/LizardByte/Sunshine/releases/latest/download/sunshine.AppImage" \
+    && chmod +x /tmp/sunshine.AppImage \
+    && mkdir -p /opt/sunshine \
+    && cd /opt/sunshine \
+    && /tmp/sunshine.AppImage --appimage-extract \
+    && SUNSHINE_BIN="$(find /opt/sunshine/squashfs-root -type f -name sunshine -perm -111 | head -n 1)" \
+    && test -n "$SUNSHINE_BIN" \
+    && ln -sf "$SUNSHINE_BIN" /usr/local/bin/sunshine \
+    && rm -f /tmp/sunshine.AppImage
 
 # Give Sunshine capabilities to create virtual input devices and intercept GPU frames
-RUN setcap cap_sys_admin+p $(which sunshine)
+RUN setcap cap_sys_admin+p $(readlink -f $(which sunshine))
 
-# Switch back to the default non-root user included in the base image
-USER user
-ENV HOME=/home/user
+# Games on Whales uses UNAME=retro, HOME=/home/retro (not "user")
+ENV HOME=/home/retro
 WORKDIR $HOME
 
 # Pre-create directory structures for the persistent volume mounts
 RUN mkdir -p $HOME/.steam/steam/config/ \
     && mkdir -p $HOME/.local/share/Steam \
-    && mkdir -p $HOME/.config/sunshine
+    && mkdir -p $HOME/.config/sunshine \
+    && chown -R 1000:1000 $HOME/.steam $HOME/.local $HOME/.config || true
 
 # Enforce Steam to automatically map Palworld to Proton Experimental
 RUN echo '{"CompatToolMapping":{"2394300":{"name":"proton_experimental","config":"","priority":250}}}' \
     > $HOME/.steam/steam/config/config.vdf
 
 # Copy an entrypoint script to launch virtual audio and display automatically
-COPY --chown=user:user entrypoint.sh /home/user/entrypoint.sh
-RUN chmod +x /home/user/entrypoint.sh
+COPY --chown=1000:1000 entrypoint.sh /home/retro/entrypoint.sh
+RUN chmod +x /home/retro/entrypoint.sh
 
 # Expose Sunshine's UI and streaming traffic ports
 EXPOSE 47984-47990/tcp 47984-47990/udp 48010/tcp
 
-ENTRYPOINT ["/home/user/entrypoint.sh"]
+ENTRYPOINT ["/home/retro/entrypoint.sh"]
