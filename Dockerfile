@@ -51,6 +51,12 @@ RUN wget --tries=5 --retry-connrefused -O /tmp/sunshine.deb \
     && apt-get update \
     && { dpkg -i /tmp/sunshine.deb || true; } \
     && apt-get install -y -f --no-install-recommends \
+    && (apt-get install -y --no-install-recommends libminiupnpc17 \
+        || apt-get install -y --no-install-recommends libminiupnpc18) \
+    && if [ ! -e /usr/lib/x86_64-linux-gnu/libminiupnpc.so.17 ] \
+          && [ -e /usr/lib/x86_64-linux-gnu/libminiupnpc.so.18 ]; then \
+         ln -s libminiupnpc.so.18 /usr/lib/x86_64-linux-gnu/libminiupnpc.so.17; \
+       fi \
     && rm -f /tmp/sunshine.deb \
     && test -x /usr/bin/sunshine \
     && setcap -r /usr/bin/sunshine 2>/dev/null || true \
