@@ -47,12 +47,14 @@ RUN mkdir -p $HOME/.steam/steam/config/ \
     && mkdir -p $HOME/.config/sunshine \
     && chown -R 1000:1000 $HOME/.steam $HOME/.local $HOME/.config || true
 
-# Enforce Steam to automatically map Palworld to Proton Experimental
+# Palworld → Proton Experimental (copied into $HOME after GOW recreates the user)
 RUN echo '{"CompatToolMapping":{"2394300":{"name":"proton_experimental","config":"","priority":250}}}' \
-    > $HOME/.steam/steam/config/config.vdf
+    > /opt/gow/steam-compat.vdf \
+    && mkdir -p $HOME/.steam/steam/config \
+    && cp /opt/gow/steam-compat.vdf $HOME/.steam/steam/config/config.vdf
 
-# /tmp is tmpfs at runtime; create XDG_RUNTIME_DIR before GOW 10-setup_user.sh chowns it
 COPY --chmod=755 00-xdg-runtime.sh /etc/cont-init.d/00-xdg-runtime.sh
+COPY --chmod=755 20-fix-home-perms.sh /etc/cont-init.d/20-fix-home-perms.sh
 COPY --chmod=755 system-services.sh /etc/cont-init.d/system-services.sh
 
 # Wrap GOW startup so PulseAudio and Sunshine run as retro, then Steam
