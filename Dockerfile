@@ -82,6 +82,6 @@ COPY --chmod=755 gs-forward.py /opt/gow/gs-forward.py
 COPY --chmod=644 sunshine.conf /opt/gow/sunshine.conf
 COPY --chmod=755 entrypoint.sh /opt/gow/startup.sh
 
-# Keep Games on Whales /entrypoint.sh (runs cont-init.d, then gosu retro)
-# Expose Sunshine's UI and streaming traffic ports
-EXPOSE 47984-47990/tcp 47984-47990/udp 48010/tcp
+# Vast remaps EXPOSE'd ports to random host ports, which breaks Moonlight's
+# fixed offsets. Do not EXPOSE GameStream ports; use host networking + a base
+# port inside Vast's allocated range (SUNSHINE_BASE_PORT).
