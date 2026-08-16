@@ -45,23 +45,22 @@ RUN wget -O /tmp/tailscale.tgz "https://pkgs.tailscale.com/stable/tailscale_late
     && install -m 755 "$TS_DIR/tailscaled" /usr/sbin/tailscaled \
     && rm -rf /tmp/tailscale.tgz "$TS_DIR"
 
-# Install Sunshine via AppImage so it matches Ubuntu 25.04 (GOW steam:master).
-# Official .deb builds are only for 22.04 / 24.04 / 26.04 and fail on Plucky.
-RUN wget --tries=5 --retry-connrefused -O /tmp/sunshine.AppImage \
-      "https://github.com/LizardByte/Sunshine/releases/latest/download/sunshine.AppImage" \
-    && chmod +x /tmp/sunshine.AppImage \
-    && mkdir -p /opt/sunshine \
-    && cd /opt/sunshine \
-    && /tmp/sunshine.AppImage --appimage-extract \
-    && SUNSHINE_BIN="$(find /opt/sunshine/squashfs-root -type f -name sunshine -perm -111 | head -n 1)" \
-    && test -n "$SUNSHINE_BIN" \
-    && ln -sf "$SUNSHINE_BIN" /usr/local/bin/sunshine \
-    && mkdir -p /usr/share/sunshine \
-    && cp -a /opt/sunshine/squashfs-root/usr/share/sunshine/. /usr/share/sunshine/ \
-    && rm -f /tmp/sunshine.AppImage
-
-# Permitted cap only; +ep cannot exec under Docker no-new-privs.
-RUN setcap cap_sys_admin+p $(readlink -f $(which sunshine)) || true
+# Sunshine 2025.122 .deb still does X11 capture. Pull Ubuntu 24.04 SONAMEs
+# (libicu74, libminiupnpc17) that Plucky does not ship.
+RUN wget --tries=5 --retry-connrefused -O /tmp/sunshine.deb \
+      "https://github.com/LizardByte/Sunshine/releases/download/v2025.122.141614/sunshine-ubuntu-24.04-amd64.deb" \
+    && wget --tries=5 --retry-connrefused -O /tmp/libicu74.deb \
+      "http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu74_74.2-1ubuntu3_amd64.deb" \
+    && wget --tries=5 --retry-connrefused -O /tmp/libminiupnpc17.deb \
+      "http://archive.ubuntu.com/ubuntu/pool/main/m/miniupnpc/libminiupnpc17_2.2.6-1build2_amd64.deb" \
+    && apt-get update \
+    && { dpkg -i /tmp/libicu74.deb /tmp/libminiupnpc17.deb /tmp/sunshine.deb || true; } \
+    && apt-get install -y -f --no-install-recommends \
+    && rm -f /tmp/sunshine.deb /tmp/libicu74.deb /tmp/libminiupnpc17.deb \
+    && test -x /usr/bin/sunshine \
+    && setcap -r /usr/bin/sunshine 2>/dev/null || true \
+    && ! ldd /usr/bin/sunshine | grep -q "not found" \
+    && rm -rf /var/lib/apt/lists/*
 
 # Games on Whales uses UNAME=retro, HOME=/home/retro (not "user")
 # WORKDIR must not be $HOME: 10-setup_user.sh runs userdel -r and deletes cwd.
