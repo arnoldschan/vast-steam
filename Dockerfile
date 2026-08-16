@@ -34,6 +34,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxcb-shm0 \
     libxcb-render0 \
     libx11-6 \
+    libxfixes3 \
+    libxrandr2 \
+    libxtst6 \
+    libxinerama1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Tailscale: Moonlight uses default Sunshine ports on the 100.x tailnet IP
@@ -87,6 +91,21 @@ COPY --chmod=755 00-xdg-runtime.sh /etc/cont-init.d/00-xdg-runtime.sh
 COPY --chmod=755 20-fix-home-perms.sh /etc/cont-init.d/20-fix-home-perms.sh
 COPY --chmod=755 40-xorg.sh /etc/cont-init.d/40-xorg.sh
 COPY --chmod=644 xorg-nvidia.conf /etc/X11/xorg-nvidia.conf
+# 1920x1080 HDMI EDID so NVIDIA reports a connected RANDR output (Sunshine x11)
+RUN python3 - << 'PY'
+edid = bytes.fromhex(
+    "00FFFFFFFFFFFF0010AC404045393437"
+    "2D1B010380351E78EA8D85A6544A9B26"
+    "0E5054A54B00714F8180A9C0D1C00101"
+    "010101010101023A801871382D40582C"
+    "4500132A2100001E000000FF00353348"
+    "593533330A2020202020000000FC0044"
+    "454C4C205032343134480A20000000FD"
+    "00384C1E5311000A20202020202000FC"
+)
+open("/etc/X11/edid-1080p.bin", "wb").write(edid)
+assert len(edid) == 128
+PY
 COPY --chmod=755 system-services.sh /etc/cont-init.d/system-services.sh
 COPY --chmod=755 50-ui-proxy.sh /etc/cont-init.d/50-ui-proxy.sh
 COPY --chmod=755 55-tailscale.sh /etc/cont-init.d/55-tailscale.sh

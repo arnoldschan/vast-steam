@@ -29,13 +29,26 @@ pactl load-module module-null-sink sink_name=Sunshine_Audio sink_properties=devi
 pactl set-default-sink Sunshine_Audio >/dev/null 2>&1 || true
 
 gow_log "DISPLAY=${DISPLAY} XAUTHORITY=${XAUTHORITY}"
-if ! xdpyinfo >/dev/null 2>&1; then
+x_ready=0
+for _ in $(seq 1 40); do
+  if xdpyinfo >/dev/null 2>&1; then
+    x_ready=1
+    break
+  fi
+  sleep 0.25
+done
+if [ "$x_ready" != 1 ]; then
   gow_log "WARNING: cannot open X display ${DISPLAY} as $(id -un)"
   ls -la /tmp/.X11-unix 2>&1 || true
   xdpyinfo 2>&1 | head -n 20 || true
 else
   gow_log "X display ${DISPLAY} is usable"
   xsetroot -solid "#2d2d2d" >/dev/null 2>&1 || true
+  gow_log "xrandr as $(id -un):"
+  xrandr --current 2>/dev/null | head -n 30 || true
+  if ! xrandr --current 2>/dev/null | grep -q " connected"; then
+    gow_log "WARNING: no RANDR connected output; Sunshine x11 capture will fail"
+  fi
 fi
 
 mkdir -p "${HOME}/.config/sunshine"
