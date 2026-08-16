@@ -1,0 +1,36 @@
+{
+  "env": {
+    "PATH": "$(PATH):/usr/games:/usr/bin:/usr/local/bin",
+    "HOME": "/home/retro",
+    "DISPLAY": ":0",
+    "XAUTHORITY": "/tmp/.Xauthority",
+    "XDG_RUNTIME_DIR": "/run/user/1000",
+    "XDG_SESSION_TYPE": "x11",
+    "SDL_VIDEODRIVER": "x11"
+  },
+  "apps": [
+    {
+      "name": "Desktop",
+      "image-path": "desktop.png",
+      "exclude-global-prep-cmd": "true"
+    },
+    {
+      "name": "Steam",
+      "image-path": "steam.png",
+      "exclude-global-prep-cmd": "true",
+      "auto-detach": "true",
+      "wait-all": "false",
+      "output": "/tmp/sunshine-steam.log",
+      "detached": ["setsid /opt/gow/launch-steam.sh -gamepadui"]
+    },
+    {
+      "name": "Palworld",
+      "image-path": "steam.png",
+      "exclude-global-prep-cmd": "true",
+      "auto-detach": "true",
+      "wait-all": "false",
+      "output": "/tmp/sunshine-palworld.log",
+      "detached": ["setsid /opt/gow/launch-steam.sh steam://rungameid/2394300"]
+    }
+  ]
+}

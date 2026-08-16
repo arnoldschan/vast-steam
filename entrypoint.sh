@@ -94,10 +94,7 @@ if [ -n "$CSRF_ORIGINS" ]; then
     >> "${HOME}/.config/sunshine/sunshine.conf"
   gow_log "Sunshine CSRF origins: ${CSRF_ORIGINS}"
 fi
-APPS_JSON="$(find /usr/share/sunshine /usr/lib/sunshine /opt/sunshine -name apps.json 2>/dev/null | head -n 1)"
-if [ -n "$APPS_JSON" ] && [ ! -f "${HOME}/.config/sunshine/apps.json" ]; then
-  cp "$APPS_JSON" "${HOME}/.config/sunshine/apps.json"
-fi
+cp /opt/gow/apps.json "${HOME}/.config/sunshine/apps.json"
 
 # Pre-create Web UI credentials so Chrome's HTTP Basic dialog is used instead of
 # the /welcome form (that form never sends Authorization and the UI spins forever).

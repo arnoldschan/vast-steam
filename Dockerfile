@@ -114,6 +114,8 @@ COPY --chmod=755 gs-forward.py /opt/gow/gs-forward.py
 
 # Wrap GOW startup: PulseAudio + Sunshine as retro (Steam is launched manually)
 COPY --chmod=644 sunshine.conf /opt/gow/sunshine.conf
+COPY --chmod=644 apps.json /opt/gow/apps.json
+COPY --chmod=755 launch-steam.sh /opt/gow/launch-steam.sh
 COPY --chmod=755 entrypoint.sh /opt/gow/startup.sh
 
 # Vast remaps EXPOSE'd ports to random host ports, which breaks Moonlight's
