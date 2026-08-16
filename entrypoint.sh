@@ -43,7 +43,15 @@ if [ "$x_ready" != 1 ]; then
   xdpyinfo 2>&1 | head -n 20 || true
 else
   gow_log "X display ${DISPLAY} is usable"
-  xsetroot -solid "#2d2d2d" >/dev/null 2>&1 || true
+  xsetroot -solid "#1a1a1a" -cursor_name left_ptr >/dev/null 2>&1 || true
+  if ! pgrep -x openbox >/dev/null 2>&1; then
+    openbox >/tmp/openbox.log 2>&1 &
+    gow_log "Started openbox on ${DISPLAY}"
+  fi
+  if ! pgrep -f '/usr/bin/steam|/usr/games/steam|steam.sh' >/dev/null 2>&1; then
+    /opt/gow/launch-steam.sh -gamepadui >/tmp/steam.log 2>&1 &
+    gow_log "Started Steam on ${DISPLAY}"
+  fi
   gow_log "xrandr as $(id -un):"
   xrandr --current 2>/dev/null | head -n 30 || true
   if ! xrandr --current 2>/dev/null | grep -q " connected"; then
@@ -105,7 +113,7 @@ SUNSHINE_PASSWORD="${SUNSHINE_PASSWORD:-sunshine}"
   >>/tmp/sunshine-creds.log 2>&1 || true
 gow_log "Sunshine Web UI login: ${SUNSHINE_USERNAME} / (SUNSHINE_PASSWORD)"
 
-gow_log "Starting Sunshine (Steam is not auto-started)"
+gow_log "Starting Sunshine (Steam auto-started on ${DISPLAY})"
 if [ "${SUNSHINE_BASE_PORT}" = "46989" ]; then
 (
   for _ in $(seq 1 40); do

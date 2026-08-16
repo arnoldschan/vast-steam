@@ -25,6 +25,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dbus-x11 \
     xserver-xorg-core \
     xserver-xorg-input-libinput \
+    openbox \
+    xcursor-themes \
     iptables \
     openssl \
     python3 \
